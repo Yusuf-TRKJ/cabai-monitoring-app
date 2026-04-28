@@ -48,32 +48,25 @@ class HomePage extends StatelessWidget {
                   color: Colors.black,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: neonBlue, width: 2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: neonBlue.withOpacity(0.6),
-                      blurRadius: 30,
-                    )
-                  ],
                 ),
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
 
-                      // HEADER
+                      /// HEADER
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text("Smart Farm",
+                              Text("System Monitoring Cabai",
                                   style: TextStyle(
                                       color: neonBlue,
                                       fontSize: 22,
                                       fontWeight: FontWeight.bold)),
                               Text(_getDate(),
-                                  style:
-                                      const TextStyle(color: Colors.white60)),
+                                  style: const TextStyle(color: Colors.white60)),
                               Text(_getTime(),
                                   style: TextStyle(color: neonBlue)),
                             ],
@@ -100,8 +93,7 @@ class HomePage extends StatelessWidget {
                                 },
                                 child: CircleAvatar(
                                   backgroundColor: Colors.white12,
-                                  child:
-                                      Icon(Icons.person, color: neonBlue),
+                                  child: Icon(Icons.person, color: neonBlue),
                                 ),
                               ),
                             ],
@@ -111,26 +103,21 @@ class HomePage extends StatelessWidget {
 
                       const SizedBox(height: 20),
 
-                      // GRAPH (UPGRADE)
-                      _chartCard("Soil Moisture",
-                          getChartData(history, "soil"), soil),
+                      /// CHART
+                      _chartCard("Soil", getChartData(history, "soil"), soil),
                       const SizedBox(height: 15),
-                      _chartCard("Temperature (°C)",
-                          getChartData(history, "suhu"), temp),
+                      _chartCard("Temperature", getChartData(history, "suhu"), temp),
                       const SizedBox(height: 15),
-                      _chartCard("Pressure (hPa)",
-                          getChartData(history, "tekanan"), pressure),
+                      _chartCard("Pressure", getChartData(history, "tekanan"), pressure),
 
                       const SizedBox(height: 20),
 
-                      // DATA
+                      /// MINI
                       Row(
                         children: [
                           Expanded(child: _mini("Soil", "${soil.toInt()}")),
                           const SizedBox(width: 10),
-                          Expanded(
-                              child: _mini("Temp",
-                                  "${temp.toStringAsFixed(1)}°C")),
+                          Expanded(child: _mini("Temp", "${temp.toStringAsFixed(1)}°C")),
                         ],
                       ),
 
@@ -138,9 +125,7 @@ class HomePage extends StatelessWidget {
 
                       Row(
                         children: [
-                          Expanded(
-                              child: _mini("Pressure",
-                                  "${pressure.toStringAsFixed(1)} hPa")),
+                          Expanded(child: _mini("Pressure", "${pressure.toStringAsFixed(1)} hPa")),
                           const SizedBox(width: 10),
                           Expanded(child: _mini("Pompa", pompa)),
                         ],
@@ -156,32 +141,31 @@ class HomePage extends StatelessWidget {
 
                       const SizedBox(height: 20),
 
-                      // CONTROL
-                      Column(
-                        children: [
-                          Switch(
-                            value: mode == "AUTO",
-                            activeColor: neonBlue,
-                            onChanged: (value) {
-                              firebaseService.setMode(
-                                  value ? "AUTO" : "MANUAL");
-                            },
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment.spaceEvenly,
-                            children: [
-                              _btn("ON", pompa == "ON", true, () {
-                                firebaseService.setPompa("ON");
-                              }),
-                              _btn("OFF", pompa == "OFF", false, () {
-                                firebaseService.setPompa("OFF");
-                              }),
-                            ],
-                          ),
-                        ],
+                      /// MODE SWITCH
+                      Switch(
+                        value: mode == "AUTO",
+                        activeColor: neonBlue,
+                        onChanged: (value) {
+                          firebaseService.setMode(
+                              value ? "AUTO" : "MANUAL");
+                        },
                       ),
+
+                      const SizedBox(height: 10),
+
+                      /// 🔥 ON OFF ONLY MANUAL
+                      if (mode == "MANUAL")
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _btn("ON", pompa == "ON", true, () {
+                              firebaseService.setPompa("ON");
+                            }),
+                            _btn("OFF", pompa == "OFF", false, () {
+                              firebaseService.setPompa("OFF");
+                            }),
+                          ],
+                        ),
                     ],
                   ),
                 ),
@@ -193,35 +177,21 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  // STATUS
-  String getStatus(String title, double v) {
-    if (title.contains("Soil")) {
-      if (v > 3000) return "Kering";
-      if (v > 1500) return "Lembab";
-      return "Basah";
-    } else if (title.contains("Temperature")) {
-      if (v > 32) return "Panas";
-      if (v < 25) return "Dingin";
-      return "Normal";
-    } else {
-      if (v > 1010) return "Tinggi";
-      if (v < 1000) return "Rendah";
-      return "Stabil";
-    }
-  }
-
-  // HISTORY
+  /// DATA HISTORY
   List<FlSpot> getChartData(Map history, String key) {
-    List<FlSpot> spots = [];
-    int index = 0;
+    List<MapEntry> entries = history.entries.toList();
+    entries.sort((a, b) => a.key.compareTo(b.key));
 
-    history.forEach((k, v) {
+    List<FlSpot> spots = [];
+    int i = 0;
+
+    for (var e in entries) {
+      final v = Map<String, dynamic>.from(e.value);
       if (v[key] != null) {
-        double value = (v[key] as num).toDouble();
-        spots.add(FlSpot(index.toDouble(), value));
-        index++;
+        spots.add(FlSpot(i.toDouble(), (v[key] as num).toDouble()));
+        i++;
       }
-    });
+    }
 
     if (spots.length > 20) {
       spots = spots.sublist(spots.length - 20);
@@ -230,20 +200,29 @@ class HomePage extends StatelessWidget {
     return spots;
   }
 
-  // CHART PROFESSIONAL
+  /// 🔥 CHART WARNA DINAMIS
   Widget _chartCard(String title, List<FlSpot> spots, double value) {
-    Color lineColor = neonBlue;
+    Color color;
 
-    if (title.contains("Temperature")) {
-      lineColor = Colors.orange;
-    } else if (title.contains("Pressure")) {
-      lineColor = Colors.green;
+    if (title == "Soil") {
+      color = value > 3000 ? Colors.red : Colors.blue;
+    } else if (title == "Temperature") {
+      color = Colors.orange;
+    } else {
+      color = Colors.green;
     }
 
-    final status = getStatus(title, value);
+    String status;
+    if (title == "Soil") {
+      status = value > 3000 ? "Kering" : "Basah";
+    } else if (title == "Temperature") {
+      status = value > 32 ? "Panas" : "Normal";
+    } else {
+      status = "Stabil";
+    }
 
     return Container(
-      height: 190,
+      height: 170,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(15),
@@ -254,12 +233,11 @@ class HomePage extends StatelessWidget {
         children: [
           Text(title, style: TextStyle(color: neonBlue)),
 
-          // 🔥 NILAI BESAR
           Text(
             value.toStringAsFixed(1),
             style: const TextStyle(
                 color: Colors.white,
-                fontSize: 20,
+                fontSize: 22,
                 fontWeight: FontWeight.bold),
           ),
 
@@ -275,31 +253,13 @@ class HomePage extends StatelessWidget {
                         style: TextStyle(color: Colors.white38)))
                 : LineChart(
                     LineChartData(
-                      gridData: FlGridData(
-                        show: true,
-                        getDrawingHorizontalLine: (value) => FlLine(
-                          color: Colors.white10,
-                          strokeWidth: 1,
-                        ),
-                        getDrawingVerticalLine: (value) => FlLine(
-                          color: Colors.white10,
-                          strokeWidth: 1,
-                        ),
-                      ),
-                      titlesData: FlTitlesData(
-                        leftTitles: AxisTitles(
-                          sideTitles: SideTitles(showTitles: true),
-                        ),
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                      ),
+                      titlesData: FlTitlesData(show: false),
                       borderData: FlBorderData(show: false),
                       lineBarsData: [
                         LineChartBarData(
                           spots: spots,
                           isCurved: true,
-                          color: lineColor,
+                          color: color,
                           barWidth: 3,
                           dotData: FlDotData(show: false),
                         ),
@@ -329,13 +289,8 @@ class HomePage extends StatelessWidget {
   }
 
   Widget _btn(String text, bool active, bool isOn, VoidCallback onTap) {
-    Color color;
-
-    if (active) {
-      color = isOn ? Colors.green : Colors.red;
-    } else {
-      color = Colors.grey.shade800;
-    }
+    Color color =
+        active ? (isOn ? Colors.green : Colors.red) : Colors.grey.shade800;
 
     return GestureDetector(
       onTap: onTap,
@@ -346,13 +301,9 @@ class HomePage extends StatelessWidget {
           color: color,
           borderRadius: BorderRadius.circular(30),
         ),
-        child: Text(
-          text, // 🔥 FIX BUG
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        child: Text(text,
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.bold)),
       ),
     );
   }

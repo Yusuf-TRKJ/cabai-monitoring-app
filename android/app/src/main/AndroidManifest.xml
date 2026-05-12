@@ -2,7 +2,7 @@
     package="com.example.monitoring_cabai">
 
     <application
-        android:label="monitoring_cabai"
+        android:label="Smart Farm Cabai"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 

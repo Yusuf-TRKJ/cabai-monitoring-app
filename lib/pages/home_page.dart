@@ -4,6 +4,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'profile_page.dart';
 import 'login_page.dart';
+import 'qos_page.dart';
 
 class HomePage extends StatelessWidget {
   final firebaseService = FirebaseService();
@@ -19,105 +20,241 @@ class HomePage extends StatelessWidget {
         child: StreamBuilder<DatabaseEvent>(
           stream: firebaseService.getAllData(),
           builder: (context, snapshot) {
-            if (!snapshot.hasData || snapshot.data!.snapshot.value == null) {
+            if (!snapshot.hasData ||
+                snapshot.data!.snapshot.value == null) {
               return Center(
-                child: CircularProgressIndicator(color: neonBlue),
+                child: CircularProgressIndicator(
+                  color: neonBlue,
+                ),
               );
             }
 
             final data = Map<String, dynamic>.from(
-                snapshot.data!.snapshot.value as Map);
+              snapshot.data!.snapshot.value as Map,
+            );
 
-            final sensor = Map<String, dynamic>.from(data['sensor'] ?? {});
-            final control = Map<String, dynamic>.from(data['control'] ?? {});
-            final history = Map<String, dynamic>.from(data['history'] ?? {});
+            final sensor = Map<String, dynamic>.from(
+              data['sensor'] ?? {},
+            );
 
-            final soil = (sensor['soil'] ?? 0).toDouble();
-            final temp = (sensor['suhu'] ?? 0).toDouble();
-            final pressure = (sensor['tekanan'] ?? 0).toDouble();
+            final control = Map<String, dynamic>.from(
+              data['control'] ?? {},
+            );
 
-            final mode = control['mode'] ?? "MANUAL";
-            final pompa = control['pompa'] ?? "OFF";
+            final history = Map<String, dynamic>.from(
+              data['history'] ?? {},
+            );
+
+            final soil =
+                (sensor['soil'] ?? 0).toDouble();
+
+            final temp =
+                (sensor['suhu'] ?? 0).toDouble();
+
+            final humidity =
+                (sensor['humidity'] ?? 0).toDouble();
+
+            final mode =
+                control['mode'] ?? "MANUAL";
+
+            final pompa =
+                control['pompa'] ?? "OFF";
 
             return Center(
               child: Container(
-                width: 400,
+                constraints:
+                    const BoxConstraints(maxWidth: 400),
+
                 margin: const EdgeInsets.all(16),
+
                 padding: const EdgeInsets.all(20),
+
                 decoration: BoxDecoration(
                   color: Colors.black,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: neonBlue, width: 2),
+
+                  borderRadius:
+                      BorderRadius.circular(20),
+
+                  border: Border.all(
+                    color: neonBlue,
+                    width: 2,
+                  ),
                 ),
+
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
 
-                      /// HEADER
+                      /// ================= HEADER =================
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text("System Monitoring Cabai",
+
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+
+                              children: [
+
+                                Text(
+                                  "System Monitoring Cabai",
+
+                                  maxLines: 1,
+
+                                  overflow:
+                                      TextOverflow.ellipsis,
+
                                   style: TextStyle(
-                                      color: neonBlue,
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold)),
-                              Text(_getDate(),
-                                  style: const TextStyle(color: Colors.white60)),
-                              Text(_getTime(),
-                                  style: TextStyle(color: neonBlue)),
-                            ],
+                                    color: neonBlue,
+                                    fontSize: 20,
+                                    fontWeight:
+                                        FontWeight.bold,
+                                  ),
+                                ),
+
+                                Text(
+                                  _getDate(),
+
+                                  style:
+                                      const TextStyle(
+                                    color:
+                                        Colors.white60,
+                                  ),
+                                ),
+
+                                Text(
+                                  _getTime(),
+
+                                  style: TextStyle(
+                                    color: neonBlue,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
+
+                          /// ================= ICON =================
                           Row(
                             children: [
+
                               IconButton(
-                                icon: Icon(Icons.logout, color: neonBlue),
+                                icon: Icon(
+                                  Icons.analytics,
+                                  color: neonBlue,
+                                ),
+
                                 onPressed: () {
-                                  Navigator.pushReplacement(
+                                  Navigator.push(
                                     context,
+
                                     MaterialPageRoute(
-                                        builder: (_) => LoginPage()),
+                                      builder: (_) =>
+                                          QoSPage(),
+                                    ),
                                   );
                                 },
                               ),
+
+                              IconButton(
+                                icon: Icon(
+                                  Icons.logout,
+                                  color: neonBlue,
+                                ),
+
+                                onPressed: () {
+                                  Navigator.pushReplacement(
+                                    context,
+
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          LoginPage(),
+                                    ),
+                                  );
+                                },
+                              ),
+
                               GestureDetector(
                                 onTap: () {
                                   Navigator.push(
                                     context,
+
                                     MaterialPageRoute(
-                                        builder: (_) => ProfilePage()),
+                                      builder: (_) =>
+                                          ProfilePage(),
+                                    ),
                                   );
                                 },
+
                                 child: CircleAvatar(
-                                  backgroundColor: Colors.white12,
-                                  child: Icon(Icons.person, color: neonBlue),
+                                  backgroundColor:
+                                      Colors.white12,
+
+                                  child: Icon(
+                                    Icons.person,
+                                    color: neonBlue,
+                                  ),
                                 ),
                               ),
                             ],
-                          )
+                          ),
                         ],
                       ),
 
                       const SizedBox(height: 20),
 
-                      /// CHART
-                      _chartCard("Soil", getChartData(history, "soil"), soil),
+                      /// ================= CHART =================
+                      _chartCard(
+                        "Soil",
+                        getChartData(
+                          history,
+                          "soil",
+                        ),
+                        soil,
+                      ),
+
                       const SizedBox(height: 15),
-                      _chartCard("Temperature", getChartData(history, "suhu"), temp),
+
+                      _chartCard(
+                        "Temperature",
+                        getChartData(
+                          history,
+                          "suhu",
+                        ),
+                        temp,
+                      ),
+
                       const SizedBox(height: 15),
-                      _chartCard("Pressure", getChartData(history, "tekanan"), pressure),
+
+                      _chartCard(
+                        "Humidity",
+                        getChartData(
+                          history,
+                          "humidity",
+                        ),
+                        humidity,
+                      ),
 
                       const SizedBox(height: 20),
 
-                      /// MINI
+                      /// ================= MINI CARD =================
                       Row(
                         children: [
-                          Expanded(child: _mini("Soil", "${soil.toInt()}")),
+
+                          Expanded(
+                            child: _mini(
+                              "Soil",
+                              "${soil.toInt()} ADC",
+                            ),
+                          ),
+
                           const SizedBox(width: 10),
-                          Expanded(child: _mini("Temp", "${temp.toStringAsFixed(1)}°C")),
+
+                          Expanded(
+                            child: _mini(
+                              "Temp",
+                              "${temp.toStringAsFixed(1)} °C",
+                            ),
+                          ),
                         ],
                       ),
 
@@ -125,9 +262,24 @@ class HomePage extends StatelessWidget {
 
                       Row(
                         children: [
-                          Expanded(child: _mini("Pressure", "${pressure.toStringAsFixed(1)} hPa")),
+
+                          Expanded(
+                            child: _mini(
+                              "Humidity",
+                              "${humidity.toStringAsFixed(1)} %",
+                            ),
+                          ),
+
                           const SizedBox(width: 10),
-                          Expanded(child: _mini("Pompa", pompa)),
+
+                          Expanded(
+                            child: _mini(
+                              "Pompa",
+                              pompa == "ON"
+                                  ? "Aktif"
+                                  : "Mati",
+                            ),
+                          ),
                         ],
                       ),
 
@@ -135,35 +287,67 @@ class HomePage extends StatelessWidget {
 
                       Row(
                         children: [
-                          Expanded(child: _mini("Mode", mode)),
+
+                          Expanded(
+                            child: _mini(
+                              "Mode",
+                              mode == "AUTO"
+                                  ? "Otomatis"
+                                  : "Manual",
+                            ),
+                          ),
                         ],
                       ),
 
                       const SizedBox(height: 20),
 
-                      /// MODE SWITCH
+                      /// ================= SWITCH =================
                       Switch(
                         value: mode == "AUTO",
+
                         activeColor: neonBlue,
+
                         onChanged: (value) {
                           firebaseService.setMode(
-                              value ? "AUTO" : "MANUAL");
+                            value
+                                ? "AUTO"
+                                : "MANUAL",
+                          );
                         },
                       ),
 
                       const SizedBox(height: 10),
 
-                      /// 🔥 ON OFF ONLY MANUAL
+                      /// ================= BUTTON =================
                       if (mode == "MANUAL")
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          mainAxisAlignment:
+                              MainAxisAlignment
+                                  .spaceEvenly,
+
                           children: [
-                            _btn("ON", pompa == "ON", true, () {
-                              firebaseService.setPompa("ON");
-                            }),
-                            _btn("OFF", pompa == "OFF", false, () {
-                              firebaseService.setPompa("OFF");
-                            }),
+
+                            _btn(
+                              "ON",
+                              pompa == "ON",
+                              true,
+
+                              () {
+                                firebaseService
+                                    .setPompa("ON");
+                              },
+                            ),
+
+                            _btn(
+                              "OFF",
+                              pompa == "OFF",
+                              false,
+
+                              () {
+                                firebaseService
+                                    .setPompa("OFF");
+                              },
+                            ),
                           ],
                         ),
                     ],
@@ -177,91 +361,265 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  /// DATA HISTORY
-  List<FlSpot> getChartData(Map history, String key) {
-    List<MapEntry> entries = history.entries.toList();
-    entries.sort((a, b) => a.key.compareTo(b.key));
+  /// ================= HISTORY =================
+  List<FlSpot> getChartData(
+    Map history,
+    String key,
+  ) {
+
+    List<MapEntry> entries =
+        history.entries.toList();
+
+    entries.sort(
+      (a, b) => a.key.compareTo(b.key),
+    );
 
     List<FlSpot> spots = [];
+
     int i = 0;
 
     for (var e in entries) {
-      final v = Map<String, dynamic>.from(e.value);
+
+      final v =
+          Map<String, dynamic>.from(e.value);
+
       if (v[key] != null) {
-        spots.add(FlSpot(i.toDouble(), (v[key] as num).toDouble()));
+
+        spots.add(
+          FlSpot(
+            i.toDouble(),
+            (v[key] as num).toDouble(),
+          ),
+        );
+
         i++;
       }
     }
 
     if (spots.length > 20) {
-      spots = spots.sublist(spots.length - 20);
+
+      spots = spots.sublist(
+        spots.length - 20,
+      );
     }
 
     return spots;
   }
 
-  /// 🔥 CHART WARNA DINAMIS
-  Widget _chartCard(String title, List<FlSpot> spots, double value) {
+  /// ================= CHART CARD =================
+  Widget _chartCard(
+    String title,
+    List<FlSpot> spots,
+    double value,
+  ) {
+
     Color color;
 
+    /// ================= WARNA =================
     if (title == "Soil") {
-      color = value > 3000 ? Colors.red : Colors.blue;
-    } else if (title == "Temperature") {
-      color = Colors.orange;
-    } else {
-      color = Colors.green;
+
+      if (value > 3200) {
+
+        color = Colors.red;
+
+      }
+
+      else if (value < 2500) {
+
+        color = Colors.blue;
+
+      }
+
+      else {
+
+        color = Colors.green;
+      }
     }
 
+    else if (title == "Temperature") {
+
+      color = Colors.orange;
+    }
+
+    else {
+
+      if (value < 50) {
+
+        color = Colors.orange;
+
+      }
+
+      else if (value > 90) {
+
+        color = Colors.cyan;
+
+      }
+
+      else {
+
+        color = Colors.green;
+      }
+    }
+
+    /// ================= STATUS =================
     String status;
+
     if (title == "Soil") {
-      status = value > 3000 ? "Kering" : "Basah";
-    } else if (title == "Temperature") {
-      status = value > 32 ? "Panas" : "Normal";
-    } else {
-      status = "Stabil";
+
+      if (value > 3200) {
+
+        status = "Kering";
+
+      }
+
+      else if (value < 2500) {
+
+        status = "Basah";
+
+      }
+
+      else {
+
+        status = "Normal";
+      }
+    }
+
+    else if (title == "Temperature") {
+
+      if (value > 35) {
+
+        status = "Panas";
+
+      }
+
+      else if (value < 20) {
+
+        status = "Dingin";
+
+      }
+
+      else {
+
+        status = "Normal";
+      }
+    }
+
+    else {
+
+      if (value < 50) {
+
+        status = "Kering";
+
+      }
+
+      else if (value > 90) {
+
+        status = "Lembab";
+
+      }
+
+      else {
+
+        status = "Normal";
+      }
     }
 
     return Container(
       height: 170,
+
       padding: const EdgeInsets.all(16),
+
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: neonBlue),
+        borderRadius:
+            BorderRadius.circular(15),
+
+        border: Border.all(
+          color: neonBlue,
+        ),
       ),
+
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
+
         children: [
-          Text(title, style: TextStyle(color: neonBlue)),
+
+          Text(
+            title,
+
+            style: TextStyle(
+              color: neonBlue,
+            ),
+          ),
 
           Text(
             value.toStringAsFixed(1),
+
             style: const TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold),
+              color: Colors.white,
+              fontSize: 22,
+            ),
           ),
 
-          Text("Status: $status",
-              style: const TextStyle(color: Colors.white60)),
+          Text(
+            "Status: $status",
+
+            style: const TextStyle(
+              color: Colors.white60,
+            ),
+          ),
 
           const SizedBox(height: 10),
 
           Expanded(
             child: spots.isEmpty
+
                 ? const Center(
-                    child: Text("No Data",
-                        style: TextStyle(color: Colors.white38)))
+                    child: Text(
+                      "No Data",
+
+                      style: TextStyle(
+                        color: Colors.white38,
+                      ),
+                    ),
+                  )
+
                 : LineChart(
                     LineChartData(
-                      titlesData: FlTitlesData(show: false),
-                      borderData: FlBorderData(show: false),
+
+                      titlesData:
+                          FlTitlesData(
+                        show: false,
+                      ),
+
+                      borderData:
+                          FlBorderData(
+                        show: false,
+                      ),
+
+                      minY: 0,
+
+                      maxY: title == "Soil"
+                          ? 4095
+                          : title == "Temperature"
+                              ? 50
+                              : 100,
+
                       lineBarsData: [
+
                         LineChartBarData(
                           spots: spots,
+
                           isCurved: true,
+
                           color: color,
+
                           barWidth: 3,
-                          dotData: FlDotData(show: false),
+
+                          dotData:
+                              FlDotData(
+                            show: false,
+                          ),
                         ),
                       ],
                     ),
@@ -272,49 +630,106 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _mini(String title, String value) {
+  /// ================= MINI CARD =================
+  Widget _mini(
+    String title,
+    String value,
+  ) {
+
     return Container(
       padding: const EdgeInsets.all(12),
+
       decoration: BoxDecoration(
-        border: Border.all(color: neonBlue),
-        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: neonBlue,
+        ),
+
+        borderRadius:
+            BorderRadius.circular(12),
       ),
+
       child: Column(
         children: [
-          Text(title, style: const TextStyle(color: Colors.white60)),
-          Text(value, style: TextStyle(color: neonBlue)),
+
+          Text(
+            title,
+
+            style: const TextStyle(
+              color: Colors.white60,
+            ),
+          ),
+
+          Text(
+            value,
+
+            style: TextStyle(
+              color: neonBlue,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _btn(String text, bool active, bool isOn, VoidCallback onTap) {
-    Color color =
-        active ? (isOn ? Colors.green : Colors.red) : Colors.grey.shade800;
+  /// ================= BUTTON =================
+  Widget _btn(
+    String text,
+    bool active,
+    bool isOn,
+    VoidCallback onTap,
+  ) {
+
+    Color color = active
+
+        ? (isOn
+            ? Colors.green
+            : Colors.red)
+
+        : Colors.grey.shade800;
 
     return GestureDetector(
       onTap: onTap,
+
       child: Container(
         padding:
-            const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+            const EdgeInsets.symmetric(
+          horizontal: 30,
+          vertical: 12,
+        ),
+
         decoration: BoxDecoration(
           color: color,
-          borderRadius: BorderRadius.circular(30),
+
+          borderRadius:
+              BorderRadius.circular(30),
         ),
-        child: Text(text,
-            style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.bold)),
+
+        child: Text(
+          text,
+
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight:
+                FontWeight.bold,
+          ),
+        ),
       ),
     );
   }
 
   String _getTime() {
+
     final now = DateTime.now();
-    return "${now.hour}:${now.minute.toString().padLeft(2, '0')}";
+
+    return
+        "${now.hour}:${now.minute.toString().padLeft(2, '0')}";
   }
 
   String _getDate() {
+
     final now = DateTime.now();
-    return "${now.day}/${now.month}/${now.year}";
+
+    return
+        "${now.day}/${now.month}/${now.year}";
   }
 }

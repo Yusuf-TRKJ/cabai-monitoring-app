@@ -1,5 +1,6 @@
 name: monitoring_cabai
 description: "A new Flutter project."
+
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -27,6 +28,7 @@ environment:
 # dependencies can be manually updated by changing the version numbers below to
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
+
 dependencies:
   flutter:
     sdk: flutter
@@ -50,6 +52,9 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^4.0.0
 
+  # 🔥 TAMBAHAN UNTUK GANTI LOGO APP
+  flutter_launcher_icons: ^0.13.1
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
@@ -60,6 +65,10 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # 🔥 DAFTARKAN FOLDER ASSETS
+  assets:
+    - assets/logo.jpg
 
   # To add assets to your application, add an assets section, like this:
   # assets:
@@ -91,3 +100,9 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# 🔥 KONFIGURASI ICON APLIKASI
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/logo.jpg"

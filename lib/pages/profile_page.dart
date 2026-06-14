@@ -1,164 +1,202 @@
 import 'package:flutter/material.dart';
 
 class ProfilePage extends StatelessWidget {
+  ProfilePage({super.key});
+
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
 
-  final Color neon = const Color(0xFF4DA6FF);
-  final Color bg1 = const Color(0xFF050A1A);
-  final Color bg2 = const Color(0xFF1A1C3A);
+  // ─── TEMA WARNA HIJAU GELAP SERAGAM SE-APLIKASI (SMART CHILI) ───
+  final Color bg1 = const Color(0xFF051109);       // Hijau super gelap background utama
+  final Color cardColor = const Color(0xFF0A1F13); // Hijau solid untuk card container
+  final Color appBarColor = const Color(0xFF030A05); // Warna AppBar gelap proporsional
+  final Color neonGreen = const Color(0xFF39B54A); // Hijau neon cerah khas dashboard utama
+  final Color neonRed = const Color(0xFFE54A4A);   // Aksen merah tegas untuk logout
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [bg1, bg2],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+      backgroundColor: bg1,
+      appBar: AppBar(
+        backgroundColor: appBarColor,
+        centerTitle: true,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
+          "PROFIL USER",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.5,
+            fontSize: 15,
           ),
         ),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
 
-        child: SafeArea(
-          child: Padding(
-            padding: EdgeInsets.all(20),
-            child: Column(
-              children: [
-
-                // 🔥 HEADER
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      "Profile",
-                      style: TextStyle(
-                        color: neon,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
+              // ─── 1. AVATAR DENGAN BORDER HIJAU CERAH & GLOW ───
+              Stack(
+                alignment: Alignment.bottomRight,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(4), // Jarak border
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: neonGreen.withOpacity(0.2),
+                          blurRadius: 25,
+                          spreadRadius: 2,
+                        )
+                      ],
+                      border: Border.all(color: neonGreen.withOpacity(0.8), width: 2),
                     ),
-
-                    IconButton(
-                      icon: Icon(Icons.arrow_back, color: neon),
-                      onPressed: () => Navigator.pop(context),
+                    child: CircleAvatar(
+                      radius: 50,
+                      backgroundColor: cardColor,
+                      child: const Icon(Icons.person_rounded, size: 55, color: Colors.white),
                     ),
+                  ),
+                  // Tombol edit kecil menempel di kanan bawah avatar
+                  CircleAvatar(
+                    radius: 16,
+                    backgroundColor: neonGreen,
+                    child: const Icon(Icons.camera_alt_rounded, size: 16, color: Colors.black),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 40),
+
+              // ─── 2. CARD CONTAINER HIJAU MODAL ───
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: cardColor,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withOpacity(0.03), width: 1.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    )
                   ],
                 ),
-
-                SizedBox(height: 30),
-
-                // 🔥 AVATAR
-                Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: neon.withOpacity(0.2),
-                        blurRadius: 20,
-                      )
-                    ],
-                  ),
-                  child: CircleAvatar(
-                    radius: 40,
-                    backgroundColor: Colors.white10,
-                    child: Icon(Icons.person, size: 40, color: neon),
-                  ),
-                ),
-
-                SizedBox(height: 30),
-
-                // 🔥 CARD CLEAN
-                Container(
-                  padding: EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.6),
-                    borderRadius: BorderRadius.circular(20),
-
-                    // 🔥 BORDER SOFT
-                    border: Border.all(color: Colors.white12),
-
-                    // 🔥 GLOW HALUS
-                    boxShadow: [
-                      BoxShadow(
-                        color: neon.withOpacity(0.15),
-                        blurRadius: 20,
-                      )
-                    ],
-                  ),
-
-                  child: Column(
-                    children: [
-
-                      _inputField(
-                        controller: emailController,
-                        hint: "Email",
-                        icon: Icons.email,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "INFORMASI AKUN",
+                      style: TextStyle(
+                        color: neonGreen.withOpacity(0.8),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
                       ),
+                    ),
+                    const SizedBox(height: 20),
 
-                      SizedBox(height: 15),
+                    // Input Email
+                    _inputField(
+                      controller: emailController,
+                      hint: "Email Akun",
+                      icon: Icons.email_outlined,
+                    ),
+                    const SizedBox(height: 16),
 
-                      _inputField(
-                        controller: passwordController,
-                        hint: "Password Baru",
-                        icon: Icons.lock,
-                        obscure: true,
-                      ),
+                    // Input Password
+                    _inputField(
+                      controller: passwordController,
+                      hint: "Password Baru",
+                      icon: Icons.lock_outline_rounded,
+                      obscure: true,
+                    ),
+                    const SizedBox(height: 30),
 
-                      SizedBox(height: 25),
-
-                      // 🔥 BUTTON CLEAN
-                      GestureDetector(
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text("Update berhasil (dummy)"),
+                    // 🔥 BUTTON UPDATE
+                    GestureDetector(
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            backgroundColor: cardColor,
+                            content: Text(
+                              "Profil berhasil diperbarui!", 
+                              style: TextStyle(color: neonGreen, fontWeight: FontWeight.bold),
                             ),
-                          );
-                        },
-                        child: Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.symmetric(vertical: 15),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-
-                            color: neon.withOpacity(0.1),
-
-                            border: Border.all(
-                              color: neon.withOpacity(0.4),
-                            ),
-
-                            boxShadow: [
-                              BoxShadow(
-                                color: neon.withOpacity(0.25),
-                                blurRadius: 15,
-                              )
-                            ],
                           ),
-                          child: Center(
-                            child: Text(
-                              "UPDATE",
-                              style: TextStyle(
-                                color: neon,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1,
-                              ),
+                        );
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          color: neonGreen,
+                          boxShadow: [
+                            BoxShadow(
+                              color: neonGreen.withOpacity(0.2),
+                              blurRadius: 15,
+                              offset: const Offset(0, 5),
+                            )
+                          ],
+                        ),
+                        child: const Center(
+                          child: Text(
+                            "SIMPAN PERUBAHAN",
+                            style: TextStyle(
+                              color: Color(0xFF051109), // Teks gelap pekat di atas tombol terang
+                              fontWeight: FontWeight.w900,
+                              fontSize: 13,
+                              letterSpacing: 1.5,
                             ),
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // 🔥 BUTTON LOGOUT (SAMAR MERAH/SOFT BENING)
+                    GestureDetector(
+                      onTap: () {
+                        // Tambahkan fungsi logout firebase di sini nanti bang
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          color: neonRed.withOpacity(0.06),
+                          border: Border.all(color: neonRed.withOpacity(0.25)),
+                        ),
+                        child: Center(
+                          child: Text(
+                            "KELUAR AKUN",
+                            style: TextStyle(
+                              color: neonRed,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  // 🔥 INPUT STYLE CLEAN
+  // 🔥 INPUT FIELD PREMIUM STYLE MATCHING
   Widget _inputField({
     required TextEditingController controller,
     required String hint,
@@ -168,24 +206,22 @@ class ProfilePage extends StatelessWidget {
     return TextField(
       controller: controller,
       obscureText: obscure,
-      style: TextStyle(color: Colors.white),
-
+      style: const TextStyle(color: Colors.white, fontSize: 14),
+      cursorColor: neonGreen,
       decoration: InputDecoration(
-        prefixIcon: Icon(icon, color: neon),
+        prefixIcon: Icon(icon, color: neonGreen.withOpacity(0.7), size: 20),
         hintText: hint,
-        hintStyle: TextStyle(color: Colors.white54),
-
+        hintStyle: const TextStyle(color: Colors.white30, fontSize: 13),
         filled: true,
-        fillColor: Colors.white.withOpacity(0.04),
-
+        fillColor: Colors.white.withOpacity(0.02),
+        contentPadding: const EdgeInsets.symmetric(vertical: 16),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.white12),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.05), width: 1.5),
         ),
-
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: neon.withOpacity(0.5)),
+          borderSide: BorderSide(color: neonGreen.withOpacity(0.8), width: 1.5),
         ),
       ),
     );

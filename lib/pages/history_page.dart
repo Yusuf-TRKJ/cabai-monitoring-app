@@ -209,7 +209,8 @@ class _HistoryPageState extends State<HistoryPage> {
                         } else {
                           parsedDate = DateTime.parse(rawTimestamp.toString());
                         }
-                        formattedTime = DateFormat('dd MMM yyyy - HH:mm').format(parsedDate);
+                        // FORMAT SEKARANG MENGGUNAKAN DETIK (HH:mm:ss) AGAR SINKRON DENGAN GRAFIK DAN TABEL QoS
+                        formattedTime = DateFormat('dd MMM yyyy - HH:mm:ss').format(parsedDate);
                       }
                     } catch (_) {}
 

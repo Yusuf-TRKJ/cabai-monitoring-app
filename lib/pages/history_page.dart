@@ -16,11 +16,11 @@ class _HistoryPageState extends State<HistoryPage> {
   String _activeFilter = 'semua'; 
   DateTime? _selectedCustomDate; // Menyimpan tanggal pilihan dari kalender picker
 
-  // ─── TEMA WARNA HIJAU GELAP SERAGAM SE-APLIKASI (SMART CHILI) ───
-  final Color bgColor = const Color(0xFF051109);       // Hijau super gelap background utama
-  final Color cardColor = const Color(0xFF0A1F13);     // Hijau solid container card
-  final Color primary = const Color(0xFF39B54A);       // Hijau neon cerah khas aplikasi
-  final Color textDark = Colors.white;                 // Teks utama putih bersih
+  // ─── PENYELARASAN PALET WARNA PREMIUM DARK CORPORATE (SESUAI REQUEST) ───
+  final Color bgColor = const Color(0xFF0F1115);       // Hitam keabuan premium (Slate Dark)
+  final Color cardColor = const Color(0xFF161920);     // Material Card Matte
+  final Color primary = const Color(0xFF34D399);       // Soft Mint Green (Aksen Utama Aplikasi)
+  final Color textDark = Colors.white;                  // Teks utama putih bersih
   final Color textSoft = Colors.white38;               // Teks sekunder/keterangan samar
 
   // Fungsi pembantu untuk memfilter data berdasarkan tanggal
@@ -78,12 +78,11 @@ class _HistoryPageState extends State<HistoryPage> {
       firstDate: DateTime(2024),
       lastDate: DateTime(2030),
       builder: (context, child) {
-        // Menyesuaikan tema warna kalender agar tetap hijau serasi aplikasi
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.dark(
               primary: primary,
-              onPrimary: bgColor,
+              onPrimary: const Color(0xFF0F1115),
               surface: cardColor,
               onSurface: textDark,
             ),
@@ -100,60 +99,6 @@ class _HistoryPageState extends State<HistoryPage> {
         _activeFilter = 'kustom_tanggal';
       });
     }
-  }
-
-  // === FUNGSI UNTUK MENAMPILKAN DIALOG & MENGHAPUS DATA ===
-  void _showDeleteDialog(BuildContext context, String key) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: cardColor,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-            side: BorderSide(color: Colors.white.withOpacity(0.05), width: 1), 
-          ),
-          title: Text("Hapus Riwayat", style: TextStyle(color: textDark, fontWeight: FontWeight.bold)),
-          content: Text(
-            "Apakah Anda yakin ingin menghapus data sensor ini?",
-            style: TextStyle(color: textDark.withOpacity(0.7)),
-          ),
-          actions: [
-            TextButton(
-              child: Text("Batal", style: TextStyle(color: textSoft)),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            TextButton(
-              child: const Text("Hapus", style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.bold)),
-              onPressed: () async {
-                try {
-                  await ref.child(key).remove();
-                  if (mounted) {
-                    Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        backgroundColor: cardColor,
-                        content: Text("Data berhasil dihapus", style: TextStyle(color: primary, fontWeight: FontWeight.bold)),
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        backgroundColor: const Color(0xFF4A151D),
-                        content: Text("Gagal menghapus data: $e", style: const TextStyle(color: Colors.white)),
-                      ),
-                    );
-                  }
-                }
-              },
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override
@@ -268,54 +213,138 @@ class _HistoryPageState extends State<HistoryPage> {
                       }
                     } catch (_) {}
 
-                    return Card(
-                      color: cardColor,
-                      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        side: BorderSide(color: Colors.white.withOpacity(0.03), width: 1.5), 
+                    // ─── LOGIKA WARNA DINAMIS ORIGINAL (TIDAK DIUBAH) ───
+                    final rawSoil = item['soil'];
+                    double soilValue = 0.0;
+                    if (rawSoil != null) {
+                      soilValue = double.tryParse(rawSoil.toString()) ?? 0.0;
+                    }
+
+                    Color soilTextColor;
+                    if (soilValue >= 3500.0) {
+                      soilTextColor = const Color(0xFFEF4444); // Kering -> Merah asli
+                    } else if (soilValue >= 2000.0 && soilValue < 3500.0) {
+                      soilTextColor = const Color(0xFFFF9800); // Normal -> Orange asli
+                    } else {
+                      soilTextColor = const Color(0xFF39B54A); // Basah -> Hijau asli bawaan
+                    }
+
+                    // ─── PEMBULATAN ANGKA DESIMAL AGAR RAPI ───
+                    String displaySuhu = "-";
+                    dynamic rawSuhu = item['suhu'];
+                    if (rawSuhu != null) {
+                      double? parsedSuhu = double.tryParse(rawSuhu.toString());
+                      displaySuhu = parsedSuhu != null ? parsedSuhu.toStringAsFixed(1) : rawSuhu.toString();
+                    }
+
+                    String displayHumidity = "-";
+                    dynamic rawHumidity = item['humidity'];
+                    if (rawHumidity != null) {
+                      double? parsedHum = double.tryParse(rawHumidity.toString());
+                      displayHumidity = parsedHum != null ? parsedHum.toStringAsFixed(1) : rawHumidity.toString();
+                    }
+
+                    String pompaStatus = (item['pompa_rekap'] ?? 'OFF').toString().toUpperCase();
+                    bool isPompaOn = pompaStatus == 'ON';
+
+                    // ─── IMPLEMENTASI SWIPE TO DELETE RAHASIA ───
+                    return Dismissible(
+                      key: Key(currentKey),
+                      direction: DismissDirection.endToStart, 
+                      background: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2D191E), // Diubah ke warna maroon gelap corporate
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 20),
                       ),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        title: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              "🌱 Soil: ${item['soil'] ?? '-'}",
-                              style: TextStyle(
-                                color: primary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
+                      onDismissed: (direction) {
+                        ref.child(currentKey).remove();
+                        
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Log data telah dihapus'),
+                            backgroundColor: Color(0xFF2D191E),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                      child: Card(
+                        color: cardColor,
+                        margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          side: BorderSide(color: Colors.white.withOpacity(0.02), width: 1.5), 
+                        ),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          title: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "🌱 Soil: ${item['soil'] ?? '-'}",
+                                style: TextStyle(
+                                  color: soilTextColor, 
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
                               ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.only(right: 4.0),
-                              child: Text(
+                              Text(
                                 formattedTime,
                                 style: TextStyle(
                                   color: textSoft,
                                   fontSize: 11,
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                        subtitle: Padding(
-                          padding: const EdgeInsets.only(top: 10.0),
-                          child: Text(
-                            "🌡️ Suhu: ${item['suhu'] ?? '-'} °C  |  💧 Lembab: ${item['humidity'] ?? '-'} %",
-                            style: TextStyle(
-                              color: textDark.withOpacity(0.8),
-                              fontSize: 13,
+                            ],
+                          ),
+                          subtitle: Padding(
+                            padding: const EdgeInsets.only(top: 10.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "🌡️ Suhu: $displaySuhu °C  |  💧 Lembab: $displayHumidity %",
+                                  style: TextStyle(
+                                    color: textDark.withOpacity(0.8),
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    const Text(
+                                      "🔌 Status Pompa: ",
+                                      style: TextStyle(
+                                        color: Colors.white60, 
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: isPompaOn 
+                                            ? primary.withOpacity(0.12) 
+                                            : const Color(0xFFEF4444).withOpacity(0.12),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        pompaStatus,
+                                        style: TextStyle(
+                                          color: isPompaOn ? primary : const Color(0xFFEF4444),
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete_sweep_rounded, color: Color(0xFFEF4444), size: 24),
-                          onPressed: () {
-                            _showDeleteDialog(context, currentKey);
-                          },
                         ),
                       ),
                     );
@@ -329,7 +358,7 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 
-  // Widget Pembuat Tombol Filter Biasa
+  // Widget Pembuat Tombol Filter Utama
   Widget _buildFilterButton(String label, String filterValue) {
     bool isSelected = _activeFilter == filterValue;
     return Padding(
@@ -337,13 +366,13 @@ class _HistoryPageState extends State<HistoryPage> {
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: isSelected ? primary : cardColor,
-          foregroundColor: isSelected ? const Color(0xFF051109) : textDark.withOpacity(0.8),
+          foregroundColor: isSelected ? const Color(0xFF0F1115) : textDark.withOpacity(0.8),
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
-              color: isSelected ? Colors.transparent : Colors.white.withOpacity(0.05),
+              color: isSelected ? Colors.transparent : Colors.white.withOpacity(0.04),
               width: 1,
             ),
           ),
@@ -351,7 +380,7 @@ class _HistoryPageState extends State<HistoryPage> {
         onPressed: () {
           setState(() {
             _activeFilter = filterValue;
-            _selectedCustomDate = null; // Reset kustom tanggal kalau klik filter biasa
+            _selectedCustomDate = null; 
           });
         },
         child: Text(
@@ -365,7 +394,7 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 
-  // ─── WIDGET TOMBOL DENGAN IKON KALENDER UNTUK FILTER KUSTOM TANGGAL ───
+  // Widget Pembuat Tombol Kalender Picker
   Widget _buildCalendarFilterButton() {
     bool isSelected = _activeFilter == 'kustom_tanggal';
     String label = isSelected && _selectedCustomDate != null
@@ -377,13 +406,13 @@ class _HistoryPageState extends State<HistoryPage> {
       child: ElevatedButton.icon(
         style: ElevatedButton.styleFrom(
           backgroundColor: isSelected ? primary : cardColor,
-          foregroundColor: isSelected ? const Color(0xFF051109) : textDark.withOpacity(0.8),
+          foregroundColor: isSelected ? const Color(0xFF0F1115) : textDark.withOpacity(0.8),
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
-              color: isSelected ? Colors.transparent : Colors.white.withOpacity(0.05),
+              color: isSelected ? Colors.transparent : Colors.white.withOpacity(0.04),
               width: 1,
             ),
           ),
@@ -392,7 +421,7 @@ class _HistoryPageState extends State<HistoryPage> {
         icon: Icon(
           Icons.calendar_month_rounded, 
           size: 16, 
-          color: isSelected ? const Color(0xFF051109) : primary
+          color: isSelected ? const Color(0xFF0F1115) : primary
         ),
         label: Text(
           label,

@@ -8,7 +8,6 @@ import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 
 import '../services/firebase_service.dart';
-import 'profile_page.dart';
 import 'qos_page.dart';
 import 'history_page.dart';
 
@@ -24,29 +23,31 @@ class _HomePageState extends State<HomePage> {
   MqttServerClient? mqttClient;
 
   // ------------------------------------------------------------------------
-  // STATE VARIABLE UNTUK DATA REAL-TIME (Dikelola Instan oleh MQTT)
+  // STATE VARIABLE UNTUK DATA REAL-TIME
   // ------------------------------------------------------------------------
   double currentSoil = 0;
   double currentTemp = 0;
   double currentHumidity = 0;
   String currentPumpStatus = "OFF";
-  String currentSystemMode = "AUTO"; // Menyimpan mode kebun saat ini
+  String currentSystemMode = "AUTO"; 
   String lastUpdateString = "-";
   bool isMqttConnected = false;
 
   // ------------------------------------------------------------------------
-  // PALET WARNA (Sesuai Presisi Gambar Berwarna Gelap Neon)
+  // PALET WARNA PROFESSIONAL PREMIUM DARK (MATTE / DEEP THEME)
   // ------------------------------------------------------------------------
-  final Color bgColor = const Color(0xFF051109);       // Hijau gelap latar belakang
-  final Color appBarColor = const Color(0xFF030A05);   // Lebih gelap untuk App Bar
-  final Color cardColor = const Color(0xFF0A1F13);     // Hijau card utama
-  final Color itemBgColor = const Color(0xFF0D2818);   // Latar status item kecil di bawah
+  final Color bgColor = const Color(0xFF0F1115);       // Hitam keabuan premium (Slate Dark)
+  final Color appBarColor = const Color(0xFF161920);   // Sedikit lebih terang dari bg
+  final Color cardColor = const Color(0xFF161920);     // Material Card Matte
+  final Color itemBgColor = const Color(0xFF212631);   // Latar status kecil / tombol sekunder
   
-  // Warna Aksent & Status Sensor Default
-  final Color soilColor = const Color(0xFFF0A93B);     // Oranye/Kuning Emas
-  final Color tempColor = const Color(0xFFE54A4A);     // Merah Ringan
-  final Color humidityColor = const Color(0xFF3B8AF0); // Biru Muda
-  final Color normalGreen = const Color(0xFF39B54A);   // Hijau Status Sukses
+  // Warna Grafik Nyaman Dimata (Muted Slate / Pastel Industrial)
+  final Color soilColor = const Color(0xFF64748B);     // Slate Gray (Netral)
+  final Color tempColor = const Color(0xFFE2E8F0);     // Off-White / Light Gray
+  final Color humidityColor = const Color(0xFF38BDF8); // Soft Ocean Blue (Teduh)
+  final Color statusSuccess = const Color(0xFF34D399); // Soft Mint Green (Bukan Neon)
+  final Color statusWarning = const Color(0xFFFBBF24); // Soft Amber
+  final Color statusDanger = const Color(0xFFF87171);  // Soft Muted Red
 
   @override
   void initState() {
@@ -61,9 +62,6 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
-  // ------------------------------------------------------------------------
-  // FUNGSI KIRIM PERINTAH TOMBOL KE HIVEMQ BROKER
-  // ------------------------------------------------------------------------
   void _kirimPerintahMqtt(String perintah) {
     if (mqttClient != null && mqttClient!.connectionStatus?.state == MqttConnectionState.connected) {
       final builder = MqttClientPayloadBuilder();
@@ -83,9 +81,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // ------------------------------------------------------------------------
-  // FUNGSI UTAMA KONEKSI MQTT HIVEMQ CLOUD
-  // ------------------------------------------------------------------------
   Future<void> _initMqtt() async {
     mqttClient = MqttServerClient.withPort(
         'f1294383812847e2acb1f7e3cca33804.s1.eu.hivemq.cloud', 
@@ -137,11 +132,8 @@ class _HomePageState extends State<HomePage> {
       final MqttPublishMessage recMess = c[0].payload as MqttPublishMessage;
       final String payload = MqttPublishPayload.bytesToStringAsString(recMess.payload.message);
       
-      debugPrint('====== [MQTT INCOMING]: $payload ======');
-
       try {
         final Map<String, dynamic> json = jsonDecode(payload);
-        
         if (mounted) {
           setState(() {
             currentSoil = (json['soil'] ?? 0).toDouble();
@@ -158,39 +150,42 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  List<Map<String, dynamic>> getSortedHistoryList(Map<String, dynamic> rawData) {
+    List<Map<String, dynamic>> list = [];
+    rawData.forEach((key, val) {
+      if (val is Map) {
+        list.add(Map<String, dynamic>.from(val));
+      }
+    });
+    list.sort((a, b) => (a['timestamp'] ?? 0).compareTo(b['timestamp'] ?? 0));
+    
+    if (list.length > 6) {
+      list = list.sublist(list.length - 6);
+    }
+    return list;
+  }
+
+  List<FlSpot> getChartSpots(List<Map<String, dynamic>> sortedList, String key) {
+    List<FlSpot> spots = [];
+    for (int i = 0; i < sortedList.length; i++) {
+      double val = (sortedList[i][key] ?? 0).toDouble();
+      spots.add(FlSpot(i.toDouble(), val));
+    }
+    return spots;
+  }
+
   @override
   Widget build(BuildContext context) {
-    // ------------------------------------------------------------------------
-    // LOGIKA WARNA DINAMIS (GRAFIK + ANGKA + STATUS IKUT BERUBAH)
-    // ------------------------------------------------------------------------
-    
-    // 1. Dinamisasi Warna Grafik & Angka Soil Sensor
     String soilStatus = currentSoil < 2200 ? "BASAH" : (currentSoil <= 3200 ? "NORMAL" : "KERING");
-    Color dynamicSoilColor;
-    if (soilStatus == "KERING") {
-      dynamicSoilColor = tempColor;     // Merah jika Kering
-    } else if (soilStatus == "NORMAL") {
-      dynamicSoilColor = soilColor;     // Oranye jika Normal
-    } else {
-      dynamicSoilColor = normalGreen;   // Hijau jika Basah
-    }
+    Color dynamicSoilColor = soilStatus == "KERING" ? statusDanger : (soilStatus == "NORMAL" ? statusWarning : statusSuccess);
 
-    // 2. Dinamisasi Warna Grafik & Angka Temperature Sensor
-    String tempStatus = currentTemp > 32 ? "PANAS" : (currentTemp >= 24 ? "NORMAL" : "DINGIN");
-    Color dynamicTempColor;
-    if (tempStatus == "PANAS") {
-      dynamicTempColor = tempColor;        // Merah jika Panas
-    } else if (tempStatus == "NORMAL") {
-      dynamicTempColor = normalGreen;      // Hijau jika Normal
-    } else {
-      dynamicTempColor = humidityColor;    // Biru jika Dingin
-    }
+    String tempStatus = currentTemp >= 32.0 ? "PANAS" : (currentTemp >= 24.0 ? "NORMAL" : "DINGIN");
+    Color dynamicTempColor = tempStatus == "PANAS" ? statusDanger : (tempStatus == "NORMAL" ? statusSuccess : humidityColor);
 
-    // 3. Dinamisasi Warna Humidity (Tetap Pas Semula)
-    String humidityStatus = "NORMAL";
-    Color dynamicHumidityColor = normalGreen;
+    String humidityStatus = currentHumidity < 40 ? "KERING" : (currentHumidity > 85 ? "SANGAT BASAH" : "NORMAL");
+    Color dynamicHumidityColor = currentHumidity < 40 ? statusDanger : humidityColor;
 
-    Color pumpColor = currentPumpStatus == "ON" ? normalGreen : Colors.white.withOpacity(0.3);
+    Color pumpColor = currentPumpStatus == "ON" ? statusSuccess : Colors.white.withOpacity(0.3);
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -210,7 +205,6 @@ class _HomePageState extends State<HomePage> {
                   if (snapshot.hasData && snapshot.data?.snapshot.value != null) {
                     try {
                       final historyData = Map<String, dynamic>.from(snapshot.data!.snapshot.value as Map);
-                      
                       finalSortedHistory = getSortedHistoryList(historyData);
 
                       soilSpots = getChartSpots(finalSortedHistory, "soil");
@@ -225,43 +219,40 @@ class _HomePageState extends State<HomePage> {
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     child: Column(
                       children: [
-                        /// --- KARTU SOIL SENSOR ---
                         _buildSensorCard(
                           title: "Soil Sensor",
                           subtitle: "Kelembaban Tanah",
                           value: currentSoil,
                           unit: "ADC",
                           status: soilStatus,
-                          statusColor: dynamicSoilColor, // Mengikuti warna dinamis
-                          chartColor: dynamicSoilColor,  // SEKARANG GARIS GRAFIK & ANGKA IKUT DINAMIS!
-                          icon: Icons.eco,
+                          statusColor: dynamicSoilColor, 
+                          chartColor: soilColor,  
+                          icon: Icons.eco_outlined,
                           minY: 0,
-                          maxY: 4095,
-                          horizontalInterval: 1024,
+                          maxY: 4000,
+                          horizontalInterval: 1000,
                           spots: soilSpots,
                           historyList: finalSortedHistory,
                         ),
                         const SizedBox(height: 14),
 
-                        /// --- KARTU TEMPERATURE ---
                         _buildSensorCard(
                           title: "Temperature",
                           subtitle: "Suhu Udara",
                           value: currentTemp,
                           unit: "°C",
                           status: tempStatus,
-                          statusColor: dynamicTempColor, // Mengikuti warna dinamis
-                          chartColor: dynamicTempColor,  // SEKARANG GARIS GRAFIK & ANGKA IKUT DINAMIS!
-                          icon: Icons.thermostat,
+                          statusColor: dynamicTempColor, 
+                          chartColor: tempColor,  
+                          icon: Icons.thermostat_outlined,
                           minY: 0,
                           maxY: 50,
-                          horizontalInterval: 12.5,
+                          horizontalInterval: 10,
                           spots: tempSpots,
                           historyList: finalSortedHistory,
                         ),
                         const SizedBox(height: 14),
 
-                        /// --- KARTU HUMIDITY ---
                         _buildSensorCard(
                           title: "Humidity",
                           subtitle: "Kelembaban Udara",
@@ -269,17 +260,16 @@ class _HomePageState extends State<HomePage> {
                           unit: "%",
                           status: humidityStatus,
                           statusColor: dynamicHumidityColor,
-                          chartColor: humidityColor, // Sesuai warna dasarnya (Biru)
-                          icon: Icons.water_drop,
+                          chartColor: humidityColor, 
+                          icon: Icons.water_drop_outlined,
                           minY: 0,
                           maxY: 100,
-                          horizontalInterval: 25,
+                          horizontalInterval: 20, 
                           spots: humiditySpots,
                           historyList: finalSortedHistory,
                         ),
                         const SizedBox(height: 14),
 
-                        /// --- KARTU SYSTEM STATUS ---
                         _buildSystemStatusCard(
                           soilStatus: soilStatus,
                           soilColor: dynamicSoilColor,
@@ -290,11 +280,9 @@ class _HomePageState extends State<HomePage> {
                         ),
                         const SizedBox(height: 14),
 
-                        /// --- KARTU REMOTE KONTROL DUAL MODE ---
                         _buildRemoteControlCard(),
                         const SizedBox(height: 12),
 
-                        /// --- FOOTER ---
                         _buildFooter(),
                       ],
                     ),
@@ -308,7 +296,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  /// ================= WIDGET REMOTE CONTROL CARD =================
   Widget _buildRemoteControlCard() {
     bool isModeAuto = (currentSystemMode == "AUTO");
 
@@ -324,7 +311,7 @@ class _HomePageState extends State<HomePage> {
         children: [
           Text(
             "SYSTEM REMOTE CONTROL", 
-            style: TextStyle(color: normalGreen.withOpacity(0.8), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)
+            style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)
           ),
           const SizedBox(height: 4),
           Text(
@@ -334,77 +321,82 @@ class _HomePageState extends State<HomePage> {
           const SizedBox(height: 14),
 
           if (isModeAuto) ...[
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: itemBgColor,
-                  foregroundColor: soilColor,
-                  side: BorderSide(color: soilColor.withOpacity(0.4), width: 1),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+            Theme(
+              data: ThemeData(elevatedButtonTheme: ElevatedButtonThemeData(style: ElevatedButton.styleFrom(elevation: 0))),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: itemBgColor,
+                    foregroundColor: Colors.white,
+                    side: BorderSide(color: Colors.white.withOpacity(0.15), width: 1),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  icon: const Icon(Icons.tune, size: 16),
+                  onPressed: () => _kirimPerintahMqtt("OFF"), 
+                  label: const Text("PINDAH KE MODE MANUAL", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                 ),
-                icon: const Icon(Icons.tune, size: 16),
-                onPressed: () => _kirimPerintahMqtt("OFF"), 
-                label: const Text("PINDAH KE MODE MANUAL", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
               ),
             ),
           ],
 
           if (!isModeAuto) ...[
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: currentSystemMode == "ON" ? humidityColor : itemBgColor,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+            Theme(
+              data: ThemeData(elevatedButtonTheme: ElevatedButtonThemeData(style: ElevatedButton.styleFrom(elevation: 0))),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: currentPumpStatus == "ON" ? humidityColor : itemBgColor,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      icon: const Icon(Icons.play_arrow, size: 16),
+                      onPressed: () => _kirimPerintahMqtt("ON"),
+                      label: const Text("MANUAL ON", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                     ),
-                    icon: const Icon(Icons.play_arrow, size: 16),
-                    onPressed: () => _kirimPerintahMqtt("ON"),
-                    label: const Text("MANUAL ON", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: currentSystemMode == "OFF" ? tempColor : itemBgColor,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: currentPumpStatus == "OFF" ? statusDanger : itemBgColor,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      icon: const Icon(Icons.stop, size: 16),
+                      onPressed: () => _kirimPerintahMqtt("OFF"),
+                      label: const Text("MANUAL OFF", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                     ),
-                    icon: const Icon(Icons.stop, size: 16),
-                    onPressed: () => _kirimPerintahMqtt("OFF"),
-                    label: const Text("MANUAL OFF", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: normalGreen,
-                  side: BorderSide(color: normalGreen.withOpacity(0.5), width: 1),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-                icon: const Icon(Icons.brightness_auto, size: 16),
-                onPressed: () => _kirimPerintahMqtt("AUTO"),
-                label: const Text("KEMBALI KE MODE OTOMATIS (AUTO)", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                ],
               ),
             ),
           ],
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white.withOpacity(0.8),
+                side: BorderSide(color: Colors.white.withOpacity(0.15), width: 1),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              icon: const Icon(Icons.brightness_auto, size: 16),
+              onPressed: () => _kirimPerintahMqtt("AUTO"),
+              label: const Text("KEMBALI KE MODE OTOMATIS (AUTO)", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  /// ================= WIDGET CUSTOM APP BAR =================
   Widget _buildCustomAppBar() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -427,7 +419,7 @@ class _HomePageState extends State<HomePage> {
                   Text(
                     isMqttConnected ? "Live via MQTT Broker" : "Menghubungkan MQTT...",
                     style: TextStyle(
-                      color: isMqttConnected ? normalGreen : Colors.amber.withOpacity(0.7), 
+                      color: isMqttConnected ? statusSuccess : statusWarning, 
                       fontSize: 12,
                       fontWeight: isMqttConnected ? FontWeight.bold : FontWeight.normal
                     ),
@@ -451,18 +443,6 @@ class _HomePageState extends State<HomePage> {
                 icon: const Icon(Icons.analytics_outlined, color: Colors.white, size: 24),
                 onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => QoSPage())),
               ),
-              const SizedBox(width: 18),
-              GestureDetector(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProfilePage())),
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.1),
-                  ),
-                  child: const Icon(Icons.person, color: Colors.white, size: 20),
-                ),
-              ),
             ],
           ),
         ],
@@ -470,7 +450,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  /// ================= WIDGET SENSOR CARD (FIX JAM REAL-TIME) =================
   Widget _buildSensorCard({
     required String title,
     required String subtitle,
@@ -486,6 +465,25 @@ class _HomePageState extends State<HomePage> {
     required List<FlSpot> spots,
     required List<Map<String, dynamic>> historyList,
   }) {
+
+    double calculatedMinY = minY;
+    double calculatedMaxY = maxY;
+    double intervalGrid = horizontalInterval;
+
+    if (title == "Soil Sensor") {
+      calculatedMinY = 0;
+      calculatedMaxY = 4000;
+      intervalGrid = 1000; 
+    } else if (title == "Temperature") {
+      calculatedMinY = 0;
+      calculatedMaxY = 50;
+      intervalGrid = 10;   
+    } else if (title == "Humidity") {
+      calculatedMinY = 0;
+      calculatedMaxY = 100;
+      intervalGrid = 20;   
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -506,7 +504,7 @@ class _HomePageState extends State<HomePage> {
                       color: Colors.white.withOpacity(0.04),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(icon, color: statusColor, size: 24),
+                    child: Icon(icon, color: Colors.white70, size: 24),
                   ),
                   const SizedBox(width: 12),
                   Column(
@@ -514,7 +512,7 @@ class _HomePageState extends State<HomePage> {
                     children: [
                       Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 2),
-                      Text(subtitle, style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12)),
+                      Text(subtitle, style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12)),
                     ],
                   ),
                 ],
@@ -527,7 +525,7 @@ class _HomePageState extends State<HomePage> {
                     children: [
                       Text(
                         value.toStringAsFixed(title == "Soil Sensor" ? 0 : 1),
-                        style: TextStyle(color: chartColor, fontSize: 24, fontWeight: FontWeight.bold, height: 1),
+                        style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, height: 1),
                       ),
                       const SizedBox(width: 6),
                       Container(
@@ -536,7 +534,7 @@ class _HomePageState extends State<HomePage> {
                           color: Colors.white.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: Text(unit, style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
+                        child: Text(unit, style: const TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),
@@ -561,30 +559,27 @@ class _HomePageState extends State<HomePage> {
           ),
           const SizedBox(height: 20),
           
-          // AREA LINE CHART (FL CHART)
           SizedBox(
             height: 150,
             child: LineChart(
               LineChartData(
                 minX: 0,
                 maxX: spots.isEmpty ? 5 : spots.length.toDouble() - 1,
-                minY: minY,
-                maxY: maxY,
+                minY: calculatedMinY, 
+                maxY: calculatedMaxY, 
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: true,
                   drawHorizontalLine: true,
-                  horizontalInterval: horizontalInterval,
+                  horizontalInterval: intervalGrid,
                   verticalInterval: 1, 
                   getDrawingHorizontalLine: (value) => FlLine(
-                    color: Colors.white.withOpacity(0.06),
+                    color: Colors.white.withOpacity(0.05),
                     strokeWidth: 1,
-                    dashArray: const [4, 4],
                   ),
                   getDrawingVerticalLine: (value) => FlLine(
-                    color: Colors.white.withOpacity(0.06),
+                    color: Colors.white.withOpacity(0.05),
                     strokeWidth: 1,
-                    dashArray: const [4, 4],
                   ),
                 ),
                 titlesData: FlTitlesData(
@@ -595,21 +590,27 @@ class _HomePageState extends State<HomePage> {
                     sideTitles: SideTitles(
                       showTitles: true,
                       reservedSize: 34,
-                      interval: horizontalInterval,
+                      interval: intervalGrid,
                       getTitlesWidget: (value, meta) {
-                        String label = title == "Temperature" ? value.toStringAsFixed(1) : value.toInt().toString();
-                        if (title == "Temperature" && value == 25.0) label = "25";
-                        return Text(
-                          label,
-                          style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 10),
-                        );
+                        if (value >= calculatedMinY && value <= calculatedMaxY && (value % intervalGrid == 0)) {
+                          return Text(
+                            value.toInt().toString(), 
+                            // WARNA PUTIH TEGAS PADA ANGKA SUMBU Y GRAFIK
+                            style: const TextStyle(
+                              color: Colors.white, 
+                              fontSize: 11, 
+                              fontWeight: FontWeight.bold
+                            ),
+                          );
+                        }
+                        return const Text('');
                       },
                     ),
                   ),
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      reservedSize: 22,
+                      reservedSize: 24,
                       interval: 1, 
                       getTitlesWidget: (value, meta) {
                         int index = value.toInt();
@@ -617,13 +618,20 @@ class _HomePageState extends State<HomePage> {
                           int ts = historyList[index]['timestamp'] ?? 0;
                           if (ts != 0) {
                             DateTime date = DateTime.fromMillisecondsSinceEpoch(ts * 1000);
+                            
+                            // FORMAT WAKTU DIKUNCI JAM DAN MENIT (HH:mm) TANPA DETIK
                             String timeStr = DateFormat('HH:mm').format(date);
                             
                             return Padding(
                               padding: const EdgeInsets.only(top: 8.0),
                               child: Text(
                                 timeStr, 
-                                style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 9, fontWeight: FontWeight.bold)
+                                // WARNA PUTIH TEGAS PADA TEKS WAKTU SUMBU X GRAFIK
+                                style: const TextStyle(
+                                  color: Colors.white, 
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold
+                                )
                               ),
                             );
                           }
@@ -635,14 +643,16 @@ class _HomePageState extends State<HomePage> {
                 ),
                 borderData: FlBorderData(
                   show: true,
-                  border: Border.all(color: Colors.white.withOpacity(0.08), width: 1),
+                  border: Border.all(color: Colors.white.withOpacity(0.05), width: 1),
                 ),
                 lineBarsData: [
                   LineChartBarData(
                     spots: spots.isEmpty ? [const FlSpot(0, 0)] : spots,
                     isCurved: true, 
-                    color: chartColor, // MEWARNAI GARIS GRAFIK SECARA DINAMIS
-                    barWidth: 2.0,
+                    curveSmoothness: 0.35, 
+                    preventCurveOverShooting: true, 
+                    color: chartColor.withOpacity(0.8), 
+                    barWidth: 2.5, 
                     isStrokeCapRound: true,
                     dotData: FlDotData(
                       show: true,
@@ -650,9 +660,9 @@ class _HomePageState extends State<HomePage> {
                       getDotPainter: (spot, percent, barData, index) {
                         return FlDotCirclePainter(
                           radius: 3, 
-                          color: bgColor, 
-                          strokeWidth: 2, 
-                          strokeColor: chartColor // TITIK SIMPUL JUGA DINAMIS
+                          color: chartColor, 
+                          strokeWidth: 0, 
+                          strokeColor: Colors.transparent
                         );
                       },
                     ),
@@ -662,7 +672,7 @@ class _HomePageState extends State<HomePage> {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          chartColor.withOpacity(0.18), // GRADIENT BAWAH GRAFIK JUGA IKUT DINAMIS
+                          chartColor.withOpacity(0.12), 
                           chartColor.withOpacity(0.0)
                         ],
                       ),
@@ -677,9 +687,9 @@ class _HomePageState extends State<HomePage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(width: 12, height: 2, color: chartColor),
+              Container(width: 12, height: 2, color: chartColor.withOpacity(0.6)),
               const SizedBox(width: 8),
-              Text("$title ($unit)", style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11)),
+              Text("$title ($unit)", style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 11)),
             ],
           )
         ],
@@ -687,7 +697,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  /// ================= WIDGET SYSTEM STATUS =================
   Widget _buildSystemStatusCard({
     required String soilStatus, required Color soilColor,
     required String tempStatus, required Color tempColor,
@@ -705,113 +714,47 @@ class _HomePageState extends State<HomePage> {
         children: [
           Text(
             "SYSTEM STATUS", 
-            style: TextStyle(color: normalGreen.withOpacity(0.8), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)
+            style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: _statusItem(Icons.eco, "SOIL", soilStatus, soilColor)),
-              const SizedBox(width: 10),
-              Expanded(child: _statusItem(Icons.thermostat, "TEMP", tempStatus, tempColor)),
-              const SizedBox(width: 10),
-              Expanded(child: _statusItem(Icons.water_drop, "PUMP", pumpStatus, pumpColor)),
+              Expanded(child: _buildStatusItem("Tanah", soilStatus, soilColor)),
+              const SizedBox(width: 8),
+              Expanded(child: _buildStatusItem("Suhu", tempStatus, tempColor)),
+              const SizedBox(width: 8),
+              Expanded(child: _buildStatusItem("Pompa", pumpStatus, pumpColor)),
             ],
-          )
+          ),
         ],
       ),
     );
   }
 
-  Widget _statusItem(IconData icon, String title, String value, Color color) {
+  Widget _buildStatusItem(String label, String value, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
       decoration: BoxDecoration(
         color: itemBgColor,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
       ),
-      child: Row(
+      child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.03),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: Colors.white.withOpacity(0.35), size: 18),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 9, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 1),
-                Text(value, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
-              ],
-            ),
-          ),
+          Text(label, style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 10)),
+          const SizedBox(height: 4),
+          Text(value, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
         ],
       ),
     );
   }
 
-  /// ================= WIDGET FOOTER APP =================
   Widget _buildFooter() {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.access_time, color: Colors.white.withOpacity(0.35), size: 13),
-          const SizedBox(width: 4),
-          Text("Last Update: $lastUpdateString", style: TextStyle(color: Colors.white.withOpacity(0.35), fontSize: 11)),
-          const SizedBox(width: 12),
-          Container(width: 1, height: 10, color: Colors.white.withOpacity(0.15)),
-          const SizedBox(width: 12),
-          Container(
-            width: 6, 
-            height: 6, 
-            decoration: BoxDecoration(
-              color: isMqttConnected ? normalGreen : Colors.orange, 
-              shape: BoxShape.circle
-            )
-          ),
-          const SizedBox(width: 6),
-          Text(
-            isMqttConnected ? "Online (MQTT)" : "Offline", 
-            style: TextStyle(color: Colors.white.withOpacity(0.35), fontSize: 11)
-          ),
-        ],
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Text(
+        "Last Update: $lastUpdateString",
+        style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 11, fontStyle: FontStyle.italic),
       ),
     );
-  }
-
-  /// ================= LOGIKA BARU KUMPULKAN DAN URUTKAN HISTORY DATA =================
-  List<Map<String, dynamic>> getSortedHistoryList(Map history) {
-    List<Map<String, dynamic>> sortedList = [];
-    
-    history.forEach((key, value) {
-      if (value is Map) {
-        sortedList.add(Map<String, dynamic>.from(value));
-      }
-    });
-
-    sortedList.sort((a, b) => (a['timestamp'] ?? 0).compareTo(b['timestamp'] ?? 0));
-
-    if (sortedList.length > 7) {
-      sortedList = sortedList.sublist(sortedList.length - 7);
-    }
-    
-    return sortedList;
-  }
-
-  /// Converted dari List Map terurut ke format FlSpot milik grafik
-  List<FlSpot> getChartSpots(List<Map<String, dynamic>> historyList, String fieldKey) {
-    List<FlSpot> spots = [];
-    for (int i = 0; i < historyList.length; i++) {
-      double val = (historyList[i][fieldKey] ?? 0).toDouble();
-      spots.add(FlSpot(i.toDouble(), val));
-    }
-    return spots;
   }
 }

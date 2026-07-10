@@ -595,7 +595,6 @@ class _HomePageState extends State<HomePage> {
                         if (value >= calculatedMinY && value <= calculatedMaxY && (value % intervalGrid == 0)) {
                           return Text(
                             value.toInt().toString(), 
-                            // WARNA PUTIH TEGAS PADA ANGKA SUMBU Y GRAFIK
                             style: const TextStyle(
                               color: Colors.white, 
                               fontSize: 11, 
@@ -619,17 +618,16 @@ class _HomePageState extends State<HomePage> {
                           if (ts != 0) {
                             DateTime date = DateTime.fromMillisecondsSinceEpoch(ts * 1000);
                             
-                            // FORMAT WAKTU DIKUNCI JAM DAN MENIT (HH:mm) TANPA DETIK
-                            String timeStr = DateFormat('HH:mm').format(date);
+                            // FORMAT WAKTU DIUBAH MENJADI JAM, MENIT, DETIK (HH:mm:ss)
+                            String timeStr = DateFormat('HH:mm:ss').format(date);
                             
                             return Padding(
                               padding: const EdgeInsets.only(top: 8.0),
                               child: Text(
                                 timeStr, 
-                                // WARNA PUTIH TEGAS PADA TEKS WAKTU SUMBU X GRAFIK
                                 style: const TextStyle(
                                   color: Colors.white, 
-                                  fontSize: 10,
+                                  fontSize: 9, // Sedikit diperkecil agar teks HH:mm:ss muat rapi
                                   fontWeight: FontWeight.bold
                                 )
                               ),
